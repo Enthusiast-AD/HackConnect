@@ -1,73 +1,74 @@
-# Welcome to your Lovable project
+# HackConnect Frontend
 
-## Project info
+Next.js 15 application with TypeScript, Shadcn/ui, and Appwrite integration.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 📁 Structure
 
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+frontend/
+├── src/
+│   ├── app/                    # Next.js 15 App Router
+│   │   ├── (auth)/            # Auth-related routes
+│   │   ├── (main)/            # Main app routes
+│   │   ├── layout.tsx         # Root layout
+│   │   └── page.tsx           # Home page
+│   ├── components/
+│   │   ├── ui/                # Shadcn/ui components
+│   │   ├── layout/            # Layout components (Navbar, Footer)
+│   │   └── features/          # Feature-specific components
+│   ├── lib/
+│   │   ├── appwrite/          # Appwrite client configuration
+│   │   └── utils.ts           # Utility functions
+│   ├── hooks/                 # Custom React hooks
+│   ├── types/                 # TypeScript type definitions
+│   ├── styles/                # Global styles
+│   └── utils/                 # Helper functions
+├── public/
+│   ├── images/                # Static images
+│   └── icons/                 # Icons and logos
+├── .env.local                 # Environment variables (create from .env.example)
+├── next.config.js             # Next.js configuration
+├── tailwind.config.ts         # Tailwind CSS configuration
+├── tsconfig.json              # TypeScript configuration
+└── package.json               # Dependencies
 ```
 
-**Edit a file directly in GitHub**
+## 🎯 Responsibilities
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+**Navdeep (Frontend Lead):**
+- Implement UI screens (Login, Dashboard, Explore)
+- Integrate Appwrite Client SDK for Realtime Chat
+- Build responsive layouts with Shadcn/ui components
+- Handle client-side state management
 
-**Use GitHub Codespaces**
+## 🚀 Getting Started
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```bash
+# Install dependencies
+npm install
 
-## What technologies are used for this project?
+# Run development server
+npm run dev
 
-This project is built with:
+# Build for production
+npm run build
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Start production server
+npm start
+```
 
-## How can I deploy this project?
+## 🔌 Appwrite Integration
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+- Client SDK setup in `src/lib/appwrite/`
+- Realtime subscriptions for chat
+- Direct database queries for simple reads
+- Authentication flows
 
-## Can I connect a custom domain to my Lovable project?
+## 📝 Key Pages
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- `/` - Landing page with hero section
+- `/explore` - Browse hackathons
+- `/dashboard` - User dashboard
+- `/teams` - Team management
+- `/chat` - Realtime messaging
+- `/profile` - User profile
