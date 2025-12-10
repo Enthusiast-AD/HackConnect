@@ -1,24 +1,33 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
 from typing import List, Optional
 
-# 1. The Schema (Matches your Appwrite Columns exactly)
+# Shared Properties (Matches your Schema)
 class UserBase(BaseModel):
-    username: str             # Matches 'username' column
-    account_id: str           # Matches 'account_id' column
+    username: str
     bio: Optional[str] = None
-    avatar_url: Optional[str] = None
+    avatar_url: Optional[str] = None # Using str because HttpUrl can be tricky with empty strings
     github_url: Optional[str] = None
-    skills: List[str] = []    # Matches 'skills' column
-    xp: int = 0               # Matches 'xp' column
-    reputation_score: float = 0.0  # Matches 'reputation_score' column
+    skills: List[str] = []
+    xp: int = 0
+    reputation_score: float = 0.0
+    account_id: str  # The link to Appwrite Auth
 
-# 2. Incoming Data (What Frontend sends after Login)
-class UserLogin(UserBase):
-    email: Optional[str] = None # We receive email, but we don't save it if the DB doesn't have a column for it
-    id: str  # The Appwrite Auth ID ($id)
+# Input for Registration
+class UserRegister(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    name: str
+    username: str
 
-# 3. Outgoing Data (What we send back)
+# Input for Login Sync
+class UserLoginSync(BaseModel):
+    id: str         # Auth ID
+    email: EmailStr
+    name: str
+    username: Optional[str] = None
+
+# Output Response
 class UserResponse(UserBase):
-    id: str
+    id: str # The $id
     created_at: str
     updated_at: str
