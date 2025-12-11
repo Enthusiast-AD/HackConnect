@@ -135,7 +135,7 @@ export default function Settings() {
               <Card className="border-border/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
                 <CardHeader>
                   <CardTitle>Appearance</CardTitle>
-                  <CardDescription>Customize how HackHub looks</CardDescription>
+                  <CardDescription>Customize how HackConnect looks</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div>

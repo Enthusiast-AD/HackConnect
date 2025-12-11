@@ -133,7 +133,7 @@ export function Footer() {
 
         <div className="border-t border-border/50 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} HackHub. All rights reserved.
+            © {new Date().getFullYear()} HackConnect. All rights reserved.
           </p>
           <p className="text-sm text-muted-foreground">
             Built with <span className="text-primary">♥</span> for hackers worldwide

@@ -354,7 +354,7 @@ export default function Index() {
                 Ready to Start Building?
               </h2>
               <p className="text-muted-foreground max-w-xl mx-auto mb-8">
-                Join thousands of hackers who have found their teams, won prizes, and launched their careers through HackHub.
+                Join thousands of hackers who have found their teams, won prizes, and launched their careers through HackConnect.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link to="/signup">
