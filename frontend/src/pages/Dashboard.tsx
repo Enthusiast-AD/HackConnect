@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Navbar } from "@/components/layout/Navbar";
 import { HackathonCard } from "@/components/features/HackathonCard";
 import { TeamCard } from "@/components/features/TeamCard";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Calendar,
   Trophy,
@@ -66,12 +67,14 @@ const recentActivity = [
 ];
 
 export default function Dashboard() {
+  const { user } = useAuth();
+
   return (
     <div className="p-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Welcome back, John! 👋</h1>
+          <h1 className="text-3xl font-bold">Welcome back, {user?.name?.split(" ")[0] || "Hacker"}! 👋</h1>
           <p className="text-muted-foreground">Here's what's happening with your hackathons</p>
         </div>
         <div className="flex items-center gap-3">
@@ -110,7 +113,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Total XP</p>
-                    <p className="text-2xl font-bold neon-text">2,450</p>
+                    <p className="text-2xl font-bold neon-text">{user?.xp?.toLocaleString() || 0}</p>
                   </div>
                   <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                     <Zap className="h-6 w-6 text-primary" />
@@ -123,7 +126,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Hackathons Won</p>
-                    <p className="text-2xl font-bold">3</p>
+                    <p className="text-2xl font-bold">{user?.hackathonsWon || 0}</p>
                   </div>
                   <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                     <Trophy className="h-6 w-6 text-primary" />

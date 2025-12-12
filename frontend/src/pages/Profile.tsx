@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HackathonCard } from "@/components/features/HackathonCard";
 import { Edit, Share2, Settings } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
+/*
 const mockUser = {
   id: "1",
   username: "johndoe",
@@ -31,6 +33,7 @@ const mockUser = {
   reputationScore: 98,
   createdAt: new Date("2023-01-15"),
 };
+*/
 
 const pastHackathons = [
   {
@@ -77,6 +80,10 @@ const projects = [
 ];
 
 export default function Profile() {
+  const { user } = useAuth();
+
+  if (!user) return null; // Should be handled by AppLayout, but safe guard
+
   return (
     <div className="p-8">
       {/* Header Actions */}
@@ -95,7 +102,7 @@ export default function Profile() {
       </div>
 
           {/* User Profile */}
-          <UserProfile user={mockUser} variant="full" />
+          <UserProfile user={user} variant="full" />
 
           {/* Tabs */}
           <Tabs defaultValue="hackathons" className="mt-8">

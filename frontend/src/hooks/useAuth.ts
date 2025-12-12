@@ -27,35 +27,34 @@ export function useAuth() {
       let userProfile: User;
 
       try {
-        // Try to fetch the user profile from the database
-        const doc = await databases.getDocument(
-          DATABASE_ID,
-          COLLECTION_USERS,
-          sessionUser.$id
-        );
+        // Fetch from Backend API
+        const response = await fetch(`${API_URL}/users/${sessionUser.$id}`);
+        if (!response.ok) throw new Error("Failed to fetch profile from backend");
+        
+        const data = await response.json();
 
         userProfile = {
-          id: doc.$id,
-          username: doc.username,
-          email: sessionUser.email,
-          name: sessionUser.name,
-          avatar: doc.avatar_url,
-          bio: doc.bio,
-          skills: doc.skills || [],
-          techStack: doc.techStack || [],
-          githubUrl: doc.github_url,
-          linkedinUrl: doc.linkedin_url,
-          portfolioUrl: doc.portfolio_url,
-          xp: doc.xp || 0,
-          level: Math.floor((doc.xp || 0) / 1000) + 1,
-          badges: [],
+          id: data.id,
+          username: data.username,
+          email: data.email,
+          name: data.name,
+          avatar: data.avatar_url,
+          bio: data.bio,
+          skills: data.skills || [],
+          techStack: data.techStack || [], // Backend might not return this yet if not in model, but let's assume it does or defaults
+          githubUrl: data.github_url,
+          linkedinUrl: data.linkedin_url,
+          portfolioUrl: data.portfolio_url,
+          xp: data.xp || 0,
+          level: Math.floor((data.xp || 0) / 1000) + 1,
+          badges: [], // Backend doesn't return badges yet
           hackathonsParticipated: 0,
           hackathonsWon: 0,
-          reputationScore: doc.reputation_score || 0,
-          createdAt: new Date(doc.$createdAt),
+          reputationScore: data.reputation_score || 0,
+          createdAt: new Date(data.created_at),
         };
       } catch (dbError) {
-        console.warn("User profile not found in DB, using session data", dbError);
+        console.warn("User profile fetch failed, falling back to session data", dbError);
         userProfile = {
           id: sessionUser.$id,
           username: sessionUser.name.toLowerCase().replace(/\s+/g, ""),

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.routes import hackathons
 from app.services.appwrite import get_db_service # <--- NEW IMPORT
-from app.api.routes import hackathons, auth
+from app.api.routes import hackathons, auth, users
 app = FastAPI(title=settings.PROJECT_NAME)
 
 # Configure CORS
@@ -47,3 +47,4 @@ def read_root():
 # Register Routes
 app.include_router(hackathons.router, prefix="/api/hackathons", tags=["Hackathons"])
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
+app.include_router(users.router, prefix="/api/users", tags=["Users"])
