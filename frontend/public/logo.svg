@@ -1,0 +1,25 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>HackConnect Geometric Logo</title>
+  <defs>
+    <linearGradient id="mainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F766E" /> <stop offset="100%" stop-color="#34D399" /> </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
+      <feOffset dx="2" dy="4" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge> 
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/> 
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g filter="url(#softShadow)">
+    <path d="M64 48C55.1634 48 48 55.1634 48 64V192C48 200.837 55.1634 208 64 208H112C120.837 208 128 200.837 128 192V144H96V112H128V64C128 55.1634 120.837 48 112 48H64Z" fill="url(#mainGradient)"/>
+
+    <path d="M144 48C135.163 48 128 55.1634 128 64V96H160V160H128V192C128 200.837 135.163 208 144 208H192C200.837 208 208 200.837 208 192V64C208 55.1634 200.837 48 192 48H144Z" fill="#064E3B" fill-opacity="0.9"/>
+    
+    </g>
+</svg>

@@ -3,6 +3,7 @@ from app.services.appwrite import get_db_service, get_users_service
 from app.core.config import settings
 from app.models.user import UserRegister, UserLoginSync, UserUpdate, PasswordChange
 from appwrite.id import ID
+from appwrite.exception import AppwriteException
 
 router = APIRouter()
 
@@ -22,6 +23,10 @@ def register_user(user: UserRegister):
                 password=user.password,
                 name=user.name
             )
+        except AppwriteException as e:
+            if e.code == 409:
+                raise HTTPException(status_code=400, detail="Email already registered")
+            raise e
         except Exception as e:
             if "409" in str(e):
                 raise HTTPException(status_code=400, detail="Email already registered")
@@ -49,6 +54,7 @@ def register_user(user: UserRegister):
     except HTTPException as he:
         raise he
     except Exception as e:
+        print(f"Register Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
