@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,6 +7,9 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Navbar } from "@/components/layout/Navbar";
 import { TeamCard } from "@/components/features/TeamCard";
 import { CreateTeamDialog } from "@/components/features/CreateTeamDialog";
+import { useTeams } from "@/hooks/useTeams";
+import { useToast } from "@/hooks/use-toast";
+import { Team } from "@/types/team";
 import {
   Search,
   Plus,
@@ -16,65 +19,6 @@ import {
   ArrowRight,
   Shuffle,
 } from "lucide-react";
-
-const teams = [
-  {
-    id: "1",
-    name: "Code Crusaders",
-    description: "Building an AI-powered learning platform",
-    members: [
-      { userId: "1", username: "johndoe", name: "John Doe", role: "leader" as const, skills: ["React", "TypeScript"], joinedAt: new Date() },
-      { userId: "2", username: "janedoe", name: "Jane Smith", role: "member" as const, skills: ["Python", "ML"], joinedAt: new Date() },
-    ],
-    maxSize: 4,
-    lookingFor: ["Backend Developer", "UI/UX Designer"],
-    techStack: ["React", "Python", "TensorFlow", "PostgreSQL"],
-    projectIdea: "An adaptive learning platform that uses AI to personalize educational content based on individual learning styles.",
-    status: "forming" as const,
-  },
-  {
-    id: "2",
-    name: "Blockchain Builders",
-    description: "Creating next-gen DeFi solutions",
-    members: [
-      { userId: "3", username: "alice", name: "Alice Chen", role: "leader" as const, skills: ["Solidity", "Web3"], joinedAt: new Date() },
-      { userId: "4", username: "bob", name: "Bob Johnson", role: "member" as const, skills: ["React", "Ethers.js"], joinedAt: new Date() },
-      { userId: "5", username: "carol", name: "Carol Williams", role: "member" as const, skills: ["Smart Contracts"], joinedAt: new Date() },
-    ],
-    maxSize: 4,
-    lookingFor: ["Full-Stack Developer"],
-    techStack: ["Solidity", "React", "Hardhat", "IPFS"],
-    projectIdea: "A decentralized lending protocol with innovative yield farming mechanics.",
-    status: "forming" as const,
-  },
-  {
-    id: "3",
-    name: "Green Innovators",
-    description: "Sustainable tech for a better future",
-    members: [
-      { userId: "6", username: "david", name: "David Lee", role: "leader" as const, skills: ["IoT", "Python"], joinedAt: new Date() },
-    ],
-    maxSize: 5,
-    lookingFor: ["Frontend Developer", "ML Engineer", "Hardware Specialist"],
-    techStack: ["Python", "TensorFlow", "Arduino", "React"],
-    projectIdea: "Smart grid optimization system using machine learning to reduce energy waste in buildings.",
-    status: "forming" as const,
-  },
-  {
-    id: "4",
-    name: "HealthTech Heroes",
-    description: "Revolutionizing healthcare with technology",
-    members: [
-      { userId: "7", username: "emma", name: "Emma Davis", role: "leader" as const, skills: ["React Native", "Node.js"], joinedAt: new Date() },
-      { userId: "8", username: "frank", name: "Frank Miller", role: "member" as const, skills: ["Python", "Data Science"], joinedAt: new Date() },
-    ],
-    maxSize: 4,
-    lookingFor: ["Mobile Developer", "Backend Developer"],
-    techStack: ["React Native", "Node.js", "MongoDB", "AWS"],
-    projectIdea: "A telemedicine platform with AI-powered symptom checker and appointment scheduling.",
-    status: "forming" as const,
-  },
-];
 
 const skillFilters = [
   "All Skills",
@@ -89,8 +33,86 @@ const skillFilters = [
 ];
 
 export default function TeamsLobby() {
+  const [teams, setTeams] = useState<Team[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSkill, setSelectedSkill] = useState("All Skills");
+  const { fetchTeams, joinTeam } = useTeams();
+  const { toast } = useToast();
+  const [joiningTeamId, setJoiningTeamId] = useState<string | null>(null);
+
+  const loadTeams = async () => {
+    const result = await fetchTeams();
+    if (result.success) {
+      // Map backend data to frontend Team type
+      const mappedTeams = result.data.map((t: any) => ({
+        id: t.$id,
+        name: t.name,
+        description: t.description || "",
+        hackathonId: t.hackathon_id || "",
+        leaderId: t.leader_id || "",
+        // Use enriched members if available, else fallback
+        members: t.members_enriched || t.members.map((m: string) => ({ userId: m, name: "Member", avatar: "" })),
+        joinRequests: t.join_requests_enriched || [], // Use enriched requests
+        maxSize: 4, // Default
+        lookingFor: t.looking_for || [],
+        techStack: t.tech_stack || [],
+        status: t.status || "open",
+        createdAt: new Date(t.$createdAt),
+        projectRepo: t.project_repo
+      }));
+      setTeams(mappedTeams);
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to load teams. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    loadTeams();
+  }, [fetchTeams]);
+
+  const handleJoinTeam = async (teamId: string) => {
+    setJoiningTeamId(teamId);
+    const result = await joinTeam(teamId);
+    setJoiningTeamId(null);
+
+    if (result.success) {
+      toast({
+        title: "Request Sent",
+        description: "Your request to join the team has been sent to the leader.",
+      });
+      // Refresh teams
+      const refreshResult = await fetchTeams();
+      if (refreshResult.success) {
+         const mappedTeams = refreshResult.data.map((t: any) => ({
+          id: t.$id,
+          name: t.name,
+          description: t.description,
+          hackathonId: t.hackathon_id,
+          leaderId: t.leader_id,
+          members: t.members.map((m: string) => ({ userId: m, name: "Member", avatar: "" })),
+          joinRequests: t.join_requests || [],
+          maxSize: 4,
+          lookingFor: t.looking_for || [],
+          techStack: t.tech_stack || [],
+          status: t.status,
+          createdAt: new Date(t.$createdAt),
+          projectRepo: t.project_repo
+        }));
+        setTeams(mappedTeams);
+      }
+    } else {
+      toast({
+        title: "Error",
+        description: result.error || "Failed to join team",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   const filteredTeams = teams.filter((team) => {
     const matchesSearch =
@@ -127,7 +149,7 @@ export default function TeamsLobby() {
             <Shuffle className="h-4 w-4" />
             Quick Match
           </Button>
-          <CreateTeamDialog />
+          <CreateTeamDialog onTeamCreated={loadTeams} />
         </div>
       </div>
 
@@ -207,7 +229,12 @@ export default function TeamsLobby() {
                 className="animate-fade-in"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <TeamCard team={team} variant="lobby" />
+                <TeamCard 
+                  team={team} 
+                  variant="lobby" 
+                  onJoin={handleJoinTeam}
+                  isJoining={joiningTeamId === team.id}
+                />
               </div>
             ))}
           </div>

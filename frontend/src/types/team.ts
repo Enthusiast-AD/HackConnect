@@ -6,6 +6,7 @@ export interface Team {
   hackathonId: string;
   leaderId: string;
   members: TeamMember[];
+  joinRequests: { userId: string; name: string }[]; // Updated to object
   maxSize: number;
   lookingFor: string[];
   techStack: string[];

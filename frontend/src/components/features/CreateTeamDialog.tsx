@@ -16,15 +16,17 @@ import { useTeams } from "@/hooks/useTeams";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Users } from "lucide-react";
 
-export function CreateTeamDialog() {
+export function CreateTeamDialog({ onTeamCreated }: { onTeamCreated?: () => void }) {
   const [open, setOpen] = useState(false);
   const { createTeam, isLoading } = useTeams();
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     name: "",
+    description: "",
     hackathonId: "",
     lookingFor: "",
+    techStack: "",
     projectRepo: "",
   });
 
@@ -40,10 +42,17 @@ export function CreateTeamDialog() {
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
 
+    const techStackArray = formData.techStack
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
     const result = await createTeam({
       name: formData.name,
-      hackathon_id: formData.hackathonId, // Note: In a real app, this should be a selection
+      description: formData.description,
+      hackathon_id: formData.hackathonId,
       looking_for: lookingForArray,
+      tech_stack: techStackArray,
       project_repo: formData.projectRepo || undefined,
     });
 
@@ -56,10 +65,13 @@ export function CreateTeamDialog() {
       // Reset form
       setFormData({
         name: "",
+        description: "",
         hackathonId: "",
         lookingFor: "",
+        techStack: "",
         projectRepo: "",
       });
+      onTeamCreated?.();
     } else {
       toast({
         title: "Error",
@@ -97,6 +109,19 @@ export function CreateTeamDialog() {
                 required
               />
             </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Briefly describe your team (max 150 chars)"
+                maxLength={150}
+                required
+              />
+            </div>
             
             <div className="grid gap-2">
               <Label htmlFor="hackathonId">Hackathon ID</Label>
@@ -121,6 +146,17 @@ export function CreateTeamDialog() {
                 value={formData.lookingFor}
                 onChange={handleChange}
                 placeholder="Frontend, Designer, Backend... (comma separated)"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="techStack">Tech Stack</Label>
+              <Input
+                id="techStack"
+                name="techStack"
+                value={formData.techStack}
+                onChange={handleChange}
+                placeholder="React, Python, Appwrite... (comma separated)"
               />
             </div>
 
