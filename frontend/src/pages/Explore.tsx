@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Navbar } from "@/components/layout/Navbar";
 import { HackathonCard } from "@/components/features/HackathonCard";
+import { useHackathons } from "@/hooks/useHackathons";
 import {
   Search,
   Filter,
@@ -22,99 +23,6 @@ import {
   X,
   ArrowRight,
 } from "lucide-react";
-
-const hackathons = [
-  {
-    id: "1",
-    title: "Web3 Global Summit 2024",
-    slug: "web3-global-summit-2024",
-    shortDescription: "Build the future of decentralized applications with $100K in prizes",
-    coverImage: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&q=80",
-    startDate: new Date("2024-03-15"),
-    location: { type: "hybrid" as const, city: "San Francisco", country: "USA" },
-    participantCount: 1247,
-    totalPrizePool: 100000,
-    currency: "USD",
-    tags: ["Web3", "Blockchain", "DeFi"],
-    status: "upcoming" as const,
-    difficulty: "intermediate" as const,
-  },
-  {
-    id: "2",
-    title: "AI Innovation Challenge",
-    slug: "ai-innovation-challenge",
-    shortDescription: "Push the boundaries of artificial intelligence and machine learning",
-    coverImage: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80",
-    startDate: new Date("2024-02-28"),
-    location: { type: "online" as const },
-    participantCount: 2891,
-    totalPrizePool: 75000,
-    currency: "USD",
-    tags: ["AI", "ML", "Python"],
-    status: "ongoing" as const,
-    difficulty: "advanced" as const,
-  },
-  {
-    id: "3",
-    title: "Green Tech Hackathon",
-    slug: "green-tech-hackathon",
-    shortDescription: "Create sustainable solutions for a better planet",
-    coverImage: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=800&q=80",
-    startDate: new Date("2024-04-01"),
-    location: { type: "in-person" as const, city: "Berlin", country: "Germany" },
-    participantCount: 583,
-    totalPrizePool: 50000,
-    currency: "EUR",
-    tags: ["CleanTech", "IoT", "Sustainability"],
-    status: "upcoming" as const,
-    difficulty: "beginner" as const,
-  },
-  {
-    id: "4",
-    title: "FinTech Fusion",
-    slug: "fintech-fusion",
-    shortDescription: "Revolutionize the future of finance and banking",
-    coverImage: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80",
-    startDate: new Date("2024-03-20"),
-    location: { type: "online" as const },
-    participantCount: 956,
-    totalPrizePool: 60000,
-    currency: "USD",
-    tags: ["FinTech", "Banking", "Payments"],
-    status: "upcoming" as const,
-    difficulty: "intermediate" as const,
-  },
-  {
-    id: "5",
-    title: "Health Tech Summit",
-    slug: "health-tech-summit",
-    shortDescription: "Build solutions for healthcare and wellness",
-    coverImage: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&q=80",
-    startDate: new Date("2024-04-10"),
-    location: { type: "hybrid" as const, city: "Boston", country: "USA" },
-    participantCount: 421,
-    totalPrizePool: 45000,
-    currency: "USD",
-    tags: ["HealthTech", "MedTech", "Wellness"],
-    status: "upcoming" as const,
-    difficulty: "all" as const,
-  },
-  {
-    id: "6",
-    title: "Gaming & Metaverse Jam",
-    slug: "gaming-metaverse-jam",
-    shortDescription: "Create immersive gaming and metaverse experiences",
-    coverImage: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&q=80",
-    startDate: new Date("2024-03-25"),
-    location: { type: "online" as const },
-    participantCount: 1834,
-    totalPrizePool: 80000,
-    currency: "USD",
-    tags: ["Gaming", "VR", "Metaverse"],
-    status: "upcoming" as const,
-    difficulty: "intermediate" as const,
-  },
-];
 
 const categories = [
   "All",
@@ -134,22 +42,57 @@ const locationFilters = [
 ];
 
 export default function Explore() {
+  const { fetchHackathons, isLoading } = useHackathons();
+  const [hackathons, setHackathons] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  useEffect(() => {
+    const loadHackathons = async () => {
+      const result = await fetchHackathons();
+      if (result.success) {
+        const mapped = result.data.map((h: any) => ({
+          id: h.$id || h.id,
+          title: h.name,
+          slug: h.name.toLowerCase().replace(/\s+/g, '-'),
+          shortDescription: h.description,
+          coverImage: h.image_url || "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&q=80",
+          startDate: new Date(h.start_date),
+          location: { type: h.mode || "online", city: h.location, country: "" },
+          participantCount: 0, // Backend doesn't have this yet
+          totalPrizePool: parseInt(h.prize_pool || "0"),
+          currency: "USD",
+          tags: h.tags || [],
+          status: h.status || "upcoming",
+          difficulty: "all", // Default
+        }));
+        setHackathons(mapped);
+      }
+    };
+    loadHackathons();
+  }, [fetchHackathons]);
+
   const selectedHackathon = hackathons.find((h) => h.id === selectedId);
 
   const filteredHackathons = hackathons.filter((h) => {
     const matchesSearch = h.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      h.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+      h.tags.some((t: string) => t.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesCategory = selectedCategory === "All" ||
-      h.tags.some((t) => t.toLowerCase().includes(selectedCategory.toLowerCase()));
+      h.tags.some((t: string) => t.toLowerCase().includes(selectedCategory.toLowerCase()));
     const matchesLocation = selectedLocation === "all" || h.location.type === selectedLocation;
     return matchesSearch && matchesCategory && matchesLocation;
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-8">
@@ -347,7 +290,7 @@ export default function Explore() {
                       </div>
 
                       <div className="flex gap-4 pt-4 border-t border-border">
-                        <Link to={`/register/${selectedHackathon.id}`} className="flex-1">
+                        <Link to={`/hackathons/${selectedHackathon.id}`} className="flex-1">
                           <Button size="lg" className="w-full font-semibold text-lg h-12" variant="neon">
                             Register Now
                             <ArrowRight className="ml-2 h-5 w-5" />
