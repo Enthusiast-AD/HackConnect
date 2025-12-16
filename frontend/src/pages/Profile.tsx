@@ -6,9 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HackathonCard } from "@/components/features/HackathonCard";
 import { Edit, Share2, Settings, LogOut } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { EditProfileDialog } from "@/components/features/EditProfileDialog";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import type { User } from "@/types/user";
 
 /*
 const mockUser = {
@@ -83,31 +86,122 @@ const projects = [
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { id } = useParams();
+  const { user: authUser, logout } = useAuth();
+  const { toast } = useToast();
+  
+  const [viewedUser, setViewedUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (id) {
+        setIsLoading(true);
+        try {
+          const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+          const response = await fetch(`${API_URL}/users/${id}`);
+          
+          if (!response.ok) {
+            throw new Error("Failed to fetch user");
+          }
+          
+          const data = await response.json();
+          
+          const mappedUser: User = {
+            id: data.id,
+            username: data.username,
+            email: data.email,
+            name: data.name,
+            role: data.role || "participant",
+            avatar: data.avatar_url,
+            bio: data.bio,
+            skills: data.skills || [],
+            techStack: data.tech_stack || [],
+            githubUrl: data.github_url,
+            portfolioUrl: data.portfolio_url,
+            xp: data.xp || 0,
+            level: Math.floor((data.xp || 0) / 1000) + 1,
+            badges: [],
+            hackathonsParticipated: data.hackathons_participated || 0,
+            hackathonsWon: data.hackathons_won || 0,
+            reputationScore: data.reputation_score || 0,
+            createdAt: data.created_at ? new Date(data.created_at) : new Date(),
+          };
+          
+          setViewedUser(mappedUser);
+        } catch (error) {
+          console.error("Error fetching user:", error);
+          toast({
+            title: "Error",
+            description: "Could not load user profile",
+            variant: "destructive",
+          });
+          navigate("/profile"); // Redirect to own profile on error
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setViewedUser(authUser);
+      }
+    };
+
+    fetchUser();
+  }, [id, authUser, navigate, toast]);
 
   const handleLogout = async () => {
     await logout();
     navigate("/login");
   };
 
-  if (!user) return null; // Should be handled by AppLayout, but safe guard
+  const handleShare = async () => {
+    if (!viewedUser) return;
+    
+    const url = `${window.location.origin}/profile/${viewedUser.id}`;
+    
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: "Link copied!",
+        description: "Profile link has been copied to your clipboard.",
+      });
+    } catch (err) {
+      toast({
+        title: "Failed to copy",
+        description: "Could not copy link to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (isLoading) {
+    return <div className="p-8 flex justify-center">Loading profile...</div>;
+  }
+
+  if (!viewedUser) return null;
+
+  const isOwnProfile = !id || (authUser && authUser.id === viewedUser.id);
 
   return (
     <div className="p-8">
       {/* Header Actions */}
       <div className="flex justify-end gap-3 mb-6">
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2" onClick={handleShare}>
           <Share2 className="h-4 w-4" />
           Share Profile
         </Button>
-        <EditProfileDialog user={user} />
-        <Button variant="ghost" size="icon">
-          <Settings className="h-5 w-5" />
-        </Button>
+        
+        {isOwnProfile && (
+          <>
+            <EditProfileDialog user={viewedUser} />
+            <Button variant="ghost" size="icon">
+              <Settings className="h-5 w-5" />
+            </Button>
+          </>
+        )}
       </div>
 
           {/* User Profile */}
-          <UserProfile user={user} variant="full" />
+          <UserProfile user={viewedUser} variant="full" />
 
           {/* Tabs */}
           <Tabs defaultValue="hackathons" className="mt-8">
@@ -164,16 +258,18 @@ export default function Profile() {
           </Tabs>
 
           {/* Logout Button */}
-          <div className="mt-8 flex justify-end">
-            <Button 
-              variant="destructive" 
-              className="gap-2"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 w-4" />
-              Log out
-            </Button>
-          </div>
+          {isOwnProfile && (
+            <div className="mt-8 flex justify-end">
+              <Button 
+                variant="destructive" 
+                className="gap-2"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4" />
+                Log out
+              </Button>
+            </div>
+          )}
         </div>
   );
 }

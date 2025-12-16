@@ -38,6 +38,7 @@ const App = () => (
             <Route path="/teams/lobby" element={<TeamsLobby />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/:id" element={<Profile />} />
             <Route path="/showcase" element={<Showcase />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/my-hackathons" element={<Dashboard />} />
