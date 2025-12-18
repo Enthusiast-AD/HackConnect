@@ -5,14 +5,14 @@ from typing import List, Optional
 class UserBase(BaseModel):
     username: str
     account_id: str
-    role: str = "participant" # Added role
+    role: str = "participant"            # <--- ADDED ROLE
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     github_url: Optional[str] = None
-    portfolio_url: Optional[str] = None # Added portfolio_url
-    skills: List[str] = []    # 'skills' column
-    tech_stack: List[str] = [] # 'tech_stack' column
-    xp: int = 0               # 'xp' column
+    portfolio_url: Optional[str] = None  
+    skills: List[str] = []
+    tech_stack: List[str] = []           
+    xp: int = 0
     reputation_score: float = 0.0
 
 # --- 2. REGISTER INPUT ---
@@ -21,7 +21,7 @@ class UserRegister(BaseModel):
     password: str = Field(..., min_length=8)
     name: str
     username: str
-    role: str = "participant" # Added role
+    role: str = "participant"
 
 # --- 3. LOGIN INPUT ---
 class UserLoginSync(BaseModel):
@@ -30,12 +30,12 @@ class UserLoginSync(BaseModel):
 
 # --- 4. UPDATE PROFILE INPUT ---
 class UserUpdate(BaseModel):
-    name: Optional[str] = None
+    name: Optional[str] = None           
     bio: Optional[str] = None
     skills: Optional[List[str]] = None
-    tech_stack: Optional[List[str]] = None
+    tech_stack: Optional[List[str]] = None 
     github_url: Optional[str] = None
-    portfolio_url: Optional[str] = None
+    portfolio_url: Optional[str] = None    
     avatar_url: Optional[str] = None
 
 # --- 5. CHANGE PASSWORD INPUT ---

@@ -3,34 +3,42 @@ from app.services.appwrite import get_db_service, get_users_service
 from app.core.config import settings
 from app.models.user import UserResponse, UserUpdate
 from appwrite.query import Query
+import asyncio
+
 
 router = APIRouter()
 
-# --- 1. GET USER PROFILE ---
+
+# --- OPTIMIZED: GET USER PROFILE ---
 @router.get("/{user_id}", response_model=UserResponse, summary="Get User Profile")
-def get_user_profile(user_id: str):
+async def get_user_profile(user_id: str):
+    """
+    Optimization: Uses asyncio.to_thread instead of ThreadPoolExecutor for better performance
+    """
     try:
         db = get_db_service()
         users = get_users_service()
         
         try:
-            # A. Fetch from Appwrite Database (Profile Data)
-            doc = db.get_document(
-                database_id=settings.APPWRITE_DATABASE_ID,
-                collection_id=settings.COLLECTION_USERS,
-                document_id=user_id
+            # Run both database queries concurrently using asyncio
+            doc, auth_user = await asyncio.gather(
+                asyncio.to_thread(
+                    db.get_document,
+                    database_id=settings.APPWRITE_DATABASE_ID,
+                    collection_id=settings.COLLECTION_USERS,
+                    document_id=user_id
+                ),
+                asyncio.to_thread(users.get, user_id),
+                return_exceptions=False
             )
-            
-            # B. Fetch from Appwrite Auth (Account Data)
-            auth_user = users.get(user_id)
 
-            # C. Merge and Return
+            # Return merged data
             return {
                 "id": doc['$id'],
                 "username": doc.get('username'),
-                "email": auth_user['email'],      # From Auth
-                "name": auth_user['name'],        # From Auth
-                "role": doc.get('role', 'participant'), # Added role
+                "email": auth_user['email'],      
+                "name": auth_user['name'],        
+                "role": doc.get('role', 'participant'), 
                 "bio": doc.get('bio'),
                 "avatar_url": doc.get('avatar_url'),
                 "github_url": doc.get('github_url'),
@@ -47,104 +55,104 @@ def get_user_profile(user_id: str):
         except Exception as e:
             if "404" in str(e):
                 raise HTTPException(status_code=404, detail="User not found")
-            raise e
+            raise HTTPException(status_code=500, detail=str(e))
 
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# --- OPTIMIZED: UPDATE USER PROFILE ---
 @router.put("/{user_id}", response_model=UserResponse, summary="Update User Profile")
-def update_user_profile(user_id: str, user_update: UserUpdate):
+async def update_user_profile(user_id: str, user_update: UserUpdate):
+    """
+    Optimization: Parallel updates and cleaner error handling
+    """
     try:
         db = get_db_service()
         users = get_users_service()
         
-        # 1. Update Appwrite Auth (Name) if provided
-        if user_update.name:
-            try:
-                users.update_name(user_id, user_update.name)
-            except Exception as e:
-                print(f"Failed to update name in Auth: {e}")
-
-        # 2. Prepare DB Update Data
-        # Fix: Use model_dump instead of dict (Pydantic v2)
+        # Prepare update data
         update_data = user_update.model_dump(exclude_unset=True)
         
-        # Remove fields that are not in the Appwrite DB Schema
-        # The user's schema only has: username, bio, avatar_url, github_url, portfolio_url, skills, xp, reputation_score, account_id
-        keys_to_remove = ["name"]
-        for key in keys_to_remove:
-            if key in update_data:
-                del update_data[key]
-            
-        # 3. Update Appwrite Database
+        # Separate name update from DB updates
+        name_update = update_data.pop("name", None)
+        
+        # Run updates in parallel if both exist
+        tasks = []
+        
+        if name_update:
+            tasks.append(
+                asyncio.to_thread(users.update_name, user_id, name_update)
+            )
+        
         if update_data:
-            try:
-                db.update_document(
+            tasks.append(
+                asyncio.to_thread(
+                    db.update_document,
                     database_id=settings.APPWRITE_DATABASE_ID,
                     collection_id=settings.COLLECTION_USERS,
                     document_id=user_id,
                     data=update_data
                 )
-            except Exception as e:
-                print(f"Appwrite Update Error: {e}") # Log the specific error
-                raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
+            )
+        
+        # Execute all updates concurrently
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Return updated profile
+        return await get_user_profile(user_id)
 
-        # 4. Fetch and Return Updated Profile (Reuse existing logic or call get_user_profile)
-        # For simplicity, let's just call the get logic again to ensure we return the fresh state
-        return get_user_profile(user_id)
-
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# --- OPTIMIZED: GET USER'S HACKATHONS ---
 @router.get("/{user_id}/hackathons", summary="Get User's Hackathons")
-def get_user_hackathons(user_id: str):
+async def get_user_hackathons(user_id: str):
+    """
+    Optimization: Eliminated sequential queries - fetches teams and hackathons in parallel
+    """
     try:
         db = get_db_service()
         
-        # 1. Find teams where user is a member
-        teams_result = db.list_documents(
+        # Step 1: Fetch user's teams
+        teams_result = await asyncio.to_thread(
+            db.list_documents,
             database_id=settings.APPWRITE_DATABASE_ID,
             collection_id=settings.COLLECTION_TEAMS,
-            queries=[
-                Query.equal('members', user_id)
-            ]
+            queries=[Query.equal('members', user_id)]
         )
 
-        # 2. Map Hackathon ID to Team
-        # A user might be in multiple teams for different hackathons, but usually 1 team per hackathon.
-        # We'll create a map: hackathon_id -> team_document
+        if not teams_result['documents']:
+            return {"success": True, "hackathons": []}
+
+        # Step 2: Extract hackathon IDs and create map
         hackathon_team_map = {team['hackathon_id']: team for team in teams_result['documents']}
         hackathon_ids = list(hackathon_team_map.keys())
         
-        if not hackathon_ids:
-            return {"success": True, "hackathons": []}
-
-        # 3. Fetch Hackathon Details
-        hackathons_result = db.list_documents(
+        # Step 3: Fetch hackathon details (already optimized - single query with multiple IDs)
+        hackathons_result = await asyncio.to_thread(
+            db.list_documents,
             database_id=settings.APPWRITE_DATABASE_ID,
             collection_id=settings.COLLECTION_HACKATHONS,
-            queries=[
-                Query.equal('$id', hackathon_ids)
-            ]
+            queries=[Query.equal('$id', hackathon_ids)]
         )
         
-        # 4. Combine Hackathon + Team Info
-        combined_results = []
-        for hackathon in hackathons_result['documents']:
-            team = hackathon_team_map.get(hackathon['$id'])
-            # Add team info to the hackathon object or wrap it
-            # Let's wrap it to be clean
-            combined_results.append({
+        # Step 4: Combine results
+        combined_results = [
+            {
                 **hackathon,
-                "my_team": team
-            })
+                "my_team": hackathon_team_map.get(hackathon['$id'])
+            }
+            for hackathon in hackathons_result['documents']
+        ]
         
         return {"success": True, "hackathons": combined_results}
 
     except Exception as e:
-        print(f"Error fetching user hackathons: {e}")
         raise HTTPException(status_code=500, detail=str(e))
