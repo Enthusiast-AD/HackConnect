@@ -76,10 +76,10 @@ export function Sidebar({ collapsed = false, setCollapsed }: SidebarProps) {
               key={item.href}
               to={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative group",
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-black/5 dark:hover:bg-sidebar-grey/5 relative group",
                 collapsed && "justify-center px-2"
               )}
-              activeClassName="bg-sidebar-accent text-primary"
+              activeClassName="bg-primary text-white hover:bg-primary/90 shadow-lg hover:shadow-primary/20"
             >
               <item.icon className="h-5 w-5 flex-shrink-0" />
               <AnimatePresence mode="wait">
@@ -114,7 +114,7 @@ export function Sidebar({ collapsed = false, setCollapsed }: SidebarProps) {
               key={item.href}
               to={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative group",
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground dark:hover:bg-sidebar-grey/5 relative group",
                 collapsed && "justify-center px-2"
               )}
               activeClassName="bg-sidebar-accent text-primary"

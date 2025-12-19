@@ -31,7 +31,7 @@ const recentActivity = [
   { id: 1, type: "team_join", message: "Jane Smith joined your team", time: "2 hours ago", icon: Users },
   { id: 2, type: "hackathon_start", message: "AI Innovation Challenge starts tomorrow", time: "5 hours ago", icon: Calendar },
   { id: 3, type: "message", message: "New message in Code Crusaders", time: "1 day ago", icon: MessageSquare },
-  { id: 4, type: "xp_earned", message: "You earned 150 XP", time: "2 days ago", icon: Zap },
+  // { id: 4, type: "xp_earned", message: "You earned 150 XP", time: "2 days ago", icon: Zap },
 ];
 
 export default function Dashboard() {
@@ -182,7 +182,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatsCard title="Active Hackathons" value={processedMyHackathons.length} icon={Calendar} />
-        <StatsCard title="Total XP" value={user?.xp?.toLocaleString() || "0"} icon={Zap} highlight />
+        {/* <StatsCard title="Total XP" value={user?.xp?.toLocaleString() || "0"} icon={Zap} highlight /> */}
         <StatsCard title="Hackathons Won" value={user?.hackathonsWon || 0} icon={Trophy} />
         <StatsCard title="Team Members" value={myTeam.members.length} icon={Users} />
       </div>
