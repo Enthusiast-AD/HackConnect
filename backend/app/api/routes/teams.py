@@ -4,6 +4,7 @@ from app.core.config import settings
 from app.models.team import TeamCreate
 from pydantic import BaseModel
 from appwrite.id import ID
+from typing import Optional, List
 import asyncio
 
 router = APIRouter()
@@ -19,6 +20,14 @@ class TeamRequestAction(BaseModel):
     team_id: str
     leader_id: str
     target_user_id: str
+
+class TeamUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    looking_for: Optional[List[str]] = None
+    tech_stack: Optional[List[str]] = None
+    project_repo: Optional[str] = None
+    status: Optional[str] = None
 
 
 # Helper function to fetch team (reused multiple times)
@@ -152,23 +161,39 @@ async def list_teams():
         db = get_db_service()
         users_service = get_users_service()
         
-        # Fetch teams and users in parallel (MAJOR OPTIMIZATION)
-        teams_result, users_result = await asyncio.gather(
-            asyncio.to_thread(
-                db.list_documents,
-                database_id=settings.APPWRITE_DATABASE_ID,
-                collection_id=settings.COLLECTION_TEAMS
-            ),
-            asyncio.to_thread(users_service.list, limit=100),
-            return_exceptions=True
+        # 1. Fetch teams
+        teams_result = await asyncio.to_thread(
+            db.list_documents,
+            database_id=settings.APPWRITE_DATABASE_ID,
+            collection_id=settings.COLLECTION_TEAMS
         )
         
-        # Build user map
+        # 2. Collect all unique user IDs
+        user_ids = set()
+        for doc in teams_result['documents']:
+            user_ids.update(doc.get('members', []))
+            user_ids.update(doc.get('join_requests', []) or [])
+            
+        # 3. Fetch users in parallel (if any)
         user_map = {}
-        if not isinstance(users_result, Exception):
-            user_map = {u['$id']: u['name'] for u in users_result.get('users', [])}
+        if user_ids:
+            # Limit concurrency to avoid rate limits
+            # Appwrite doesn't support bulk fetch by ID list, so we fetch individually
+            # For production, this should be cached or handled differently
+            async def fetch_user_safe(uid):
+                try:
+                    u = await asyncio.to_thread(users_service.get, uid)
+                    return u
+                except:
+                    return None
+
+            users_data = await asyncio.gather(*[fetch_user_safe(uid) for uid in user_ids])
+            
+            for u in users_data:
+                if u:
+                    user_map[u['$id']] = u['name']
         
-        # Enrich teams with user data
+        # 4. Enrich teams
         for doc in teams_result['documents']:
             doc.setdefault('leader_id', "")
             
@@ -274,6 +299,83 @@ async def reject_request(action: TeamRequestAction):
         
         return {"success": True, "message": "Request rejected"}
         
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- 8. UPDATE TEAM ---
+@router.put("/{team_id}", summary="Update Team Details")
+async def update_team_details(team_id: str, update: TeamUpdate, user_id: str):
+    try:
+        team = await _get_team(team_id)
+        
+        if team['leader_id'] != user_id:
+            raise HTTPException(status_code=403, detail="Only leader can update team")
+            
+        data_to_update = update.model_dump(exclude_unset=True)
+        if not data_to_update:
+             return {"success": True, "message": "No changes"}
+
+        await _update_team(team_id, data_to_update)
+        return {"success": True, "message": "Team updated"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- 10. GET TEAM ---
+@router.get("/{team_id}", summary="Get Team Details")
+async def get_team(team_id: str):
+    try:
+        db = get_db_service()
+        users_service = get_users_service()
+        
+        # 1. Fetch team
+        team = await _get_team(team_id)
+        
+        # 2. Collect user IDs
+        user_ids = set()
+        user_ids.update(team.get('members', []))
+        user_ids.update(team.get('join_requests', []) or [])
+        
+        # 3. Fetch users in parallel
+        user_map = {}
+        if user_ids:
+            async def fetch_user_safe(uid):
+                try:
+                    u = await asyncio.to_thread(users_service.get, uid)
+                    return u
+                except:
+                    return None
+
+            users_data = await asyncio.gather(*[fetch_user_safe(uid) for uid in user_ids])
+            
+            for u in users_data:
+                if u:
+                    user_map[u['$id']] = u['name']
+            
+        # Enrich
+        team.setdefault('leader_id', "")
+        team['members_enriched'] = [
+            {
+                "userId": m_id,
+                "name": user_map.get(m_id, "Unknown User"),
+                "avatar": ""
+            }
+            for m_id in team.get('members', [])
+        ]
+        team['join_requests_enriched'] = [
+            {
+                "userId": r_id,
+                "name": user_map.get(r_id, "Unknown User")
+            }
+            for r_id in (team.get('join_requests') or [])
+        ]
+        
+        return team
     except HTTPException:
         raise
     except Exception as e:

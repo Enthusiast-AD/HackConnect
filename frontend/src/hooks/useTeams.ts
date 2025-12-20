@@ -135,12 +135,84 @@ export function useTeams() {
     }
   }, [user]);
 
+  const fetchTeam = useCallback(async (teamId: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/teams/${teamId}`);
+      if (!response.ok) throw new Error("Failed to fetch team");
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const updateTeam = useCallback(async (teamId: string, updates: any) => {
+    if (!user) return { success: false, error: "Not logged in" };
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/teams/${teamId}?user_id=${user.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (!response.ok) throw new Error("Failed to update team");
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  const removeMember = useCallback(async (teamId: string, memberId: string) => {
+    if (!user) return { success: false, error: "Not logged in" };
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/teams/remove_member`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ team_id: teamId, leader_id: user.id, target_user_id: memberId }),
+      });
+      if (!response.ok) throw new Error("Failed to remove member");
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  const deleteTeam = useCallback(async (teamId: string) => {
+    if (!user) return { success: false, error: "Not logged in" };
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/teams/delete`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ team_id: teamId, user_id: user.id }),
+      });
+      if (!response.ok) throw new Error("Failed to delete team");
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
   return {
     createTeam,
     fetchTeams,
+    fetchTeam,
     joinTeam,
     approveMember,
     rejectMember,
+    updateTeam,
+    removeMember,
+    deleteTeam,
     isLoading
   };
 }

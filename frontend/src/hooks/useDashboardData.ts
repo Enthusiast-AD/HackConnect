@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { useMemo } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
@@ -12,6 +13,12 @@ async function fetchAllHackathons() {
 async function fetchUserHackathons(userId: string) {
   const res = await fetch(`${API_URL}/users/${userId}/hackathons`);
   if (!res.ok) throw new Error("Failed to load user hackathons");
+  return res.json();
+}
+
+async function fetchTeams() {
+  const res = await fetch(`${API_URL}/teams`);
+  if (!res.ok) throw new Error("Failed to load teams");
   return res.json();
 }
 
@@ -33,10 +40,24 @@ export function useDashboardData() {
     staleTime: 1000 * 60 * 5,
   });
 
+  // 3. Fetch Teams (Cached for 5 mins)
+  const teamsQuery = useQuery({
+    queryKey: ["teams"],
+    queryFn: fetchTeams,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const myTeam = useMemo(() => {
+    return teamsQuery.data?.documents?.find((team: any) => 
+      team.members.includes(user?.id)
+    );
+  }, [teamsQuery.data, user?.id]);
+
   return { 
     allHackathons: allHackathonsQuery.data?.documents || [],
     myHackathons: myHackathonsQuery.data?.hackathons || [],
-    isLoading: isAuthLoading || allHackathonsQuery.isLoading || (!!user && myHackathonsQuery.isLoading),
+    myTeam,
+    isLoading: isAuthLoading || allHackathonsQuery.isLoading || (!!user && myHackathonsQuery.isLoading) || teamsQuery.isLoading,
     isError: allHackathonsQuery.isError
   };
 }

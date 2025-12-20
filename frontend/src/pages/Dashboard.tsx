@@ -8,24 +8,11 @@ import { HackathonCard } from "@/components/features/HackathonCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useDashboardData } from "@/hooks/useDashboardData"; // Import the hook we made
 import { Skeleton } from "@/components/ui/skeleton";
+import { motion } from "framer-motion";
 import {
   Calendar, Trophy, Users, Zap, ArrowRight, Clock,
   TrendingUp, MessageSquare, ChevronRight
 } from "lucide-react";
-
-// Keep static data outside component to prevent re-creation
-const myTeam = {
-  id: "1",
-  name: "Code Crusaders",
-  members: [
-    { userId: "1", name: "John Doe" },
-    { userId: "2", name: "Jane Smith" },
-    { userId: "3", name: "Bob Smith" },
-  ],
-  maxSize: 4,
-  techStack: ["React", "Python", "TensorFlow"],
-  status: "competing" as const,
-};
 
 const recentActivity = [
   { id: 1, type: "team_join", message: "Jane Smith joined your team", time: "2 hours ago", icon: Users },
@@ -38,7 +25,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   
   // 1. USE THE CUSTOM HOOK (No more useEffect)
-  const { allHackathons, myHackathons: rawMyHackathons, isLoading } = useDashboardData();
+  const { allHackathons, myHackathons: rawMyHackathons, myTeam, isLoading } = useDashboardData();
   
   const [visibleCount, setVisibleCount] = useState(4);
   const isOrganizer = user?.role === "organizer";
@@ -173,18 +160,17 @@ export default function Dashboard() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">Welcome back, {user?.name?.split(" ")[0] || "Hacker"}! 👋</h1>
-          <p className="text-muted-foreground">Here"s what"s happening</p>
+          <p className="text-muted-foreground">Here's what's happening</p>
         </div>
         <Link to="/explore">
             <Button variant="neon">Find Hackathons <ArrowRight className="h-4 w-4 ml-1" /></Button>
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatsCard title="Active Hackathons" value={processedMyHackathons.length} icon={Calendar} />
-        {/* <StatsCard title="Total XP" value={user?.xp?.toLocaleString() || "0"} icon={Zap} highlight /> */}
-        <StatsCard title="Hackathons Won" value={user?.hackathonsWon || 0} icon={Trophy} />
-        <StatsCard title="Team Members" value={myTeam.members.length} icon={Users} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <StatsCard title="Active Hackathons" value={processedMyHackathons.length} icon={Calendar} delay={0.1} />
+        <StatsCard title="Hackathons Won" value={user?.hackathonsWon || 0} icon={Trophy} highlight delay={0.2} />
+        <StatsCard title="Team Members" value={myTeam?.members?.length || 0} icon={Users} delay={0.3} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -209,39 +195,70 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {/* My Team - Keeping static for MVP as requested */}
+          {/* My Team */}
           <section>
             <h2 className="text-xl font-semibold mb-4">My Team</h2>
-            <Card variant="neon">
-                <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                        <Users className="h-6 w-6 text-primary" />
+            {myTeam ? (
+              <Link to={`/teams/${myTeam.$id}`}>
+                <Card className="border-primary/20 bg-primary/5 overflow-hidden hover:bg-primary/10 transition-colors cursor-pointer group">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Users className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">{myTeam.name}</h3>
+                          <p className="text-sm text-muted-foreground">{myTeam.members?.length || 0} members</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="bg-green-500/20 text-green-400 border-green-500/30 capitalize">
+                        {myTeam.status || "Active"}
+                      </Badge>
                     </div>
-                    <div>
-                        <h3 className="font-semibold">{myTeam.name}</h3>
-                        <p className="text-sm text-muted-foreground">{myTeam.members.length}/{myTeam.maxSize} members</p>
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex -space-x-2">
+                        {myTeam.members_enriched?.map((member: any, i: number) => (
+                          <Avatar key={member.userId} className="h-10 w-10 border-2 border-background ring-2 ring-background" style={{ zIndex: 10 - i }}>
+                            <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                              {member.name?.slice(0, 2).toUpperCase() || "??"}
+                            </AvatarFallback>
+                          </Avatar>
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {myTeam.tech_stack?.map((tech: string) => (
+                          <Badge key={tech} variant="secondary" className="text-xs bg-background/50 backdrop-blur-sm border-primary/10">
+                            {tech}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
-                    </div>
-                    <Badge variant="outline" className="bg-green-500/20 text-green-400 border-green-500/30">{myTeam.status}</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                    <div className="flex -space-x-2">
-                    {myTeam.members.map((member, i) => (
-                        <Avatar key={member.userId} className="h-10 w-10 border-2 border-card" style={{ zIndex: 3 - i }}>
-                        <AvatarFallback className="bg-muted text-sm">{member.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                    ))}
-                    </div>
-                    <div className="flex gap-2">
-                    {myTeam.techStack.map((tech) => (
-                        <Badge key={tech} variant="secondary" className="text-xs">{tech}</Badge>
-                    ))}
-                    </div>
-                </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ) : (
+              <Card className="border-dashed">
+                <CardContent className="p-8 text-center space-y-4">
+                  <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mx-auto">
+                    <Users className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">No Team Yet</h3>
+                    <p className="text-sm text-muted-foreground">Join a team or create one to start competing!</p>
+                  </div>
+                  <div className="flex justify-center gap-2">
+                    <Link to="/teams">
+                      <Button variant="outline" size="sm">Find Team</Button>
+                    </Link>
+                    <Link to="/create-team">
+                      <Button size="sm">Create Team</Button>
+                    </Link>
+                  </div>
                 </CardContent>
-            </Card>
+              </Card>
+            )}
           </section>
 
           {/* Recommended */}
@@ -279,20 +296,31 @@ export default function Dashboard() {
 }
 
 // Helper component for cleaner JSX
-function StatsCard({ title, value, icon: Icon, highlight }: any) {
+function StatsCard({ title, value, icon: Icon, highlight, delay = 0 }: any) {
     return (
-        <Card variant="elevated">
-            <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-                <div>
-                <p className="text-sm text-muted-foreground">{title}</p>
-                <p className={`text-2xl font-bold ${highlight ? "neon-text" : ""}`}>{value}</p>
-                </div>
-                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Icon className="h-6 w-6 text-primary" />
-                </div>
-            </div>
-            </CardContent>
-        </Card>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay }}
+        >
+            <Card className={`relative overflow-hidden border-none shadow-lg bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-colors group`}>
+                <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 ${highlight ? "bg-primary" : "bg-foreground"}`} />
+                <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+                            <div className="flex items-baseline gap-2">
+                                <p className={`text-3xl font-bold tracking-tight ${highlight ? "text-primary drop-shadow-[0_0_8px_rgba(var(--primary),0.5)]" : "text-foreground"}`}>
+                                    {value}
+                                </p>
+                            </div>
+                        </div>
+                        <div className={`h-12 w-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300 ${highlight ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+                            <Icon className="h-6 w-6" />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        </motion.div>
     );
 }

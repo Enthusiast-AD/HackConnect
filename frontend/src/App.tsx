@@ -18,6 +18,8 @@ import NotFound from "./pages/NotFound";
 import CreateHackathon from "./pages/CreateHackathon";
 import HackathonDetails from "./pages/HackathonDetails";
 import MyHackathons from "./pages/MyHackathons";
+import TeamDetails from "./pages/TeamDetails";
+import JoinTeam from "./pages/JoinTeam";
 
 const queryClient = new QueryClient();
 
@@ -31,12 +33,14 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/teams/join/:teamId" element={<JoinTeam />} />
           
           {/* App Routes with Layout */}
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/explore" element={<Explore />} />
             <Route path="/teams/lobby" element={<TeamsLobby />} />
+            <Route path="/teams/:teamId" element={<TeamDetails />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/:id" element={<Profile />} />
